@@ -271,6 +271,34 @@ May–July 2024, `python -m solarfleet.analysis`). This is no longer synthetic-o
 The dataset is gated, so none of it is committed (`data/` is gitignored); CI
 still runs entirely on the synthetic `testdata/` fixture.
 
+## Decision layer — capacity siting under output-variability risk
+
+The capstone (`solarfleet/decide.py`): the dispersion-smoothing effect turned into
+an actionable decision. Given candidate sites and a capacity budget, choose the
+allocation ``w`` that minimises aggregate output variance ``w' C w``, where
+
+    C_ij = Cov[K_i, K_j] * sum_t a_i(t) a_j(t)
+
+combines the calibrated **weather coupling** (distance-decaying, form (b)) with
+**co-illumination** (geometry: how much two sites are sunlit together). ``C`` is
+PSD (Hadamard of two PSD matrices), so it is a convex QP (SLSQP).
+
+- **On the real-calibrated model** (8 sites, summer-2024 fits + fitted kernel),
+  holding expected output fixed at the equal-weight level, optimised siting is
+  **39% less variable** than splitting capacity equally — a genuine dispersion
+  gain (same energy, steadier), using ~2.9 effective sites spread across latitude.
+- **Honesty check that shaped the design:** *unconstrained* min-variance is
+  degenerate — it piles into the lowest-yield site (low output = low absolute
+  variance), reporting a flattering but meaningless 83% reduction. The meaningful
+  decision holds expected output fixed (a return floor), so the win is dispersion
+  and timing, not yield-shrinking. The demo and the headline number use the fixed
+  output.
+- Verified (`tests/test_decide.py`): feasible weights; min-variance beats
+  equal-weight beats concentration; the optimiser avoids piling into the
+  correlated London cluster; the output floor trades variance monotonically; and
+  faster spatial decorrelation makes dispersion more valuable — the decision
+  responds to the kernel exactly as the physics says it should.
+
 ## Consequences of the python+configs reframe (flagged, not blockers)
 
 - **The Phase 4 twin inverts.** With no bespoke Go there is no Go oracle for the
