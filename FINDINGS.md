@@ -299,6 +299,41 @@ PSD (Hadamard of two PSD matrices), so it is a convex QP (SLSQP).
   faster spatial decorrelation makes dispersion more valuable — the decision
   responds to the kernel exactly as the physics says it should.
 
+## §5.3 — the learned residual (ONNX), and the allocation profile
+
+The residual (`solarfleet/residual.py`): a gradient-boosted tree ensemble that
+predicts the structured part of `log K` from conditions the OU cannot express
+(time of day, season, irradiance level) — the honest slot for soiling, shading,
+inverter clipping. Trained in Python (sklearn), exported via `skl2onnx`, so it
+exercises the `ai.onnx.ml` `TreeEnsembleRegressor` operator specifically.
+
+- **It evaluates inside the stochadex forward loop, and matches onnxruntime
+  exactly (0.0 difference).** Verified end-to-end: the frozen `.onnx` runs as a
+  `{type: onnx_inference}` partition, fed a per-step feature vector, and its output
+  equals Python `onnxruntime` to the bit (`tests/test_residual_engine.py`).
+- **Plan correction — there is no pure-Go ONNX evaluator.** The plan framed this
+  as exercising "the pure-Go evaluator question". The engine's ONNX path is
+  **cgo + the onnxruntime shared library, under a build tag** (`pkg/onnx`, blank
+  import, `//go:build onnx`). The ordinary pure-Go binary (`CGO_ENABLED=0`) has no
+  ONNX at all. To run ONNX in the config workflow you build with
+  `CGO_ENABLED=1 -tags onnx` and provide `libonnxruntime` — conveniently the pip
+  `onnxruntime` wheel bundles the dylib, pointed at via `ONNXRUNTIME_LIB_PATH`.
+- **Allocation profile (the §9 question): the Go wrapper is allocation-free per
+  step.** `OnnxInferenceIteration.Iterate` (`pkg/onnx/onnx.go`) writes into a
+  pinned input tensor (`binding.data`), runs the session, and copies into a reused
+  output slice (`o.out`) — no per-step Go heap allocation, confirming the doc's
+  "pure, allocation-free map" claim. The only per-step heap traffic is whatever
+  onnxruntime's C runtime does internally, which is opaque to Go's allocator and
+  outside the engine's control. So the plan's worry ("if it allocates per step,
+  that's a finding") resolves to: the *engine* path does not; any cost is in the
+  runtime, not the integration.
+- **It stayed a correction, not the model.** Per the constraint, fitting is in
+  Python and the physical + OU layers were validated (Phases 1-4) before the
+  residual existed, so we know which layer does the work. Wiring the correction
+  into the generation config (multiplying `exp(residual)` onto site output) is a
+  one-line change on the proven in-loop path; it is left off by default so the
+  residual cannot silently become load-bearing.
+
 ## Consequences of the python+configs reframe (flagged, not blockers)
 
 - **The Phase 4 twin inverts.** With no bespoke Go there is no Go oracle for the

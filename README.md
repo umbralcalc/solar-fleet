@@ -108,11 +108,11 @@ Complete: geometry, both model forms (factor + full-covariance), ingestion +
 cleaning contract, inference (calibration + a particle filter with ESS), the
 declarative twin verified against an independent numpy reference, the six
 structural-driver behavioural claims, **calibration against real OCF uk_pv data**,
-and a **capacity-siting decision layer** (`python -m solarfleet.decide`) that
-minimises aggregate output variability using the calibrated distance-decay
-covariance. 60 tests pass.
+a **capacity-siting decision layer** (`python -m solarfleet.decide`) that minimises
+aggregate output variability using the calibrated distance-decay covariance, and a
+**learned ONNX residual** (`solarfleet/residual.py`) that trains in Python and
+evaluates inside the stochadex forward loop. 64 tests pass.
 
-Deferred / out of scope: the ONNX residual (needs
-`scikit-learn`/`skl2onnx`/`onnxruntime`); and the plan's Phase 5 (extraction into
-the stochadex Go catalogue, which the Python-only constraint rules out). See
-`FINDINGS.md` and `STOCHADEX_GAPS.md`.
+Deferred / out of scope: only the plan's Phase 5 (extraction into the stochadex Go
+catalogue, which the Python-only constraint rules out). See `FINDINGS.md` and
+`STOCHADEX_GAPS.md`.
