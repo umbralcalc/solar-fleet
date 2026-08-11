@@ -187,6 +187,33 @@ shape requirement is the same canonical one.
   when those deps are added; the allocation-profile question it raises is noted
   for then.
 
+## Phase 4 — the declarative twin, verified against a numpy reference
+
+With no bespoke Go, the 1e-12 shared-RNG oracle is unavailable, so the twin is
+the config vs an **independent** numpy reference (`solarfleet/reference.py`),
+verified in `tests/test_equivalence.py`:
+
+- **Which oracle was achieved.** *Exact to 1e-9* on the deterministic model
+  (`sigma = 0`): the config and the reference — two separate implementations of
+  the same OU update, clamps and generation formula — agree to floating point,
+  with `init_logk != mu` so the OU relaxation and the capacity clip are genuinely
+  exercised, not a fixed point. This is the strongest oracle possible here and it
+  is stronger than a fat-tolerance statistical check would be.
+- **Stochastic parts: distributional.** Config and reference are independent
+  draws; both are validated against the *analytic* discrete-OU stationary
+  statistics (mean `mu`, variance `sigma^2/(theta(2 - theta dt))`, correlation
+  `rho`) — stronger than run-vs-run, which is only pinned to Monte-Carlo error.
+- **dt scaling, mutation sentinels, branch coverage** all pass: `sqrt(dt)` moves
+  innovation variance the right way; a dropped `cos(zeta-gamma)` term makes a
+  south panel look like an east one (caught); a wrong clear-sky `A` is caught;
+  the night and capacity-clip branches are both hit and, for the clip,
+  cross-checked against the reference.
+- **Plan correction (§6.4): unknown config keys are REJECTED, not ignored.** The
+  plan warned that `yaml.v2` silently accepts unknown keys (the `state_width`
+  trap). v0.15.0 rejects `totally_bogus_key` with an actionable message —
+  *"...which nothing reads — check for a typo, or a key from an older schema."*
+  The trap the plan guarded against no longer exists.
+
 ## Consequences of the python+configs reframe (flagged, not blockers)
 
 - **The Phase 4 twin inverts.** With no bespoke Go there is no Go oracle for the

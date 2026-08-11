@@ -223,6 +223,16 @@ def correlation_matrix(sites: list[Site], kernel: CouplingKernel) -> np.ndarray:
     return rho
 
 
+def cholesky_factor(sites: list[Site], kernel: CouplingKernel) -> np.ndarray:
+    """Lower-triangular ``L`` with ``L @ L.T == Sigma`` (zeros when sigma == 0)."""
+    s = len(sites)
+    if kernel.sigma == 0.0:
+        return np.zeros((s, s))
+    sig = np.full(s, kernel.sigma)
+    cov = np.outer(sig, sig) * correlation_matrix(sites, kernel) + kernel.nugget * np.eye(s)
+    return np.linalg.cholesky(cov)
+
+
 def build_covariance_config(
     sites: list[Site],
     times,
@@ -231,6 +241,7 @@ def build_covariance_config(
     seed: int = 12345,
     k_max: float = K_MAX_DEFAULT,
     stepsize: float = 1.0,
+    init_logk=None,
 ) -> dict:
     """Full-covariance form (b): one wide partition, Cholesky-correlated draws.
 
@@ -246,15 +257,14 @@ def build_covariance_config(
     times_naive = times.tz_convert("UTC").tz_localize(None).values
     s = len(sites)
 
-    rho = correlation_matrix(sites, kernel)
-    sigma_vec = np.full(s, kernel.sigma)
-    cov = np.outer(sigma_vec, sigma_vec) * rho + kernel.nugget * np.eye(s)
-    lower = np.linalg.cholesky(cov)          # lower @ lower.T == cov
+    lower = cholesky_factor(sites, kernel)   # lower @ lower.T == cov (zeros if sigma=0)
     lflat = [float(v) for v in lower.reshape(-1)]  # row-major
 
     mu = np.array([site.mu for site in sites])
     kwp = np.array([site.kwp for site in sites])
     eta = np.array([site.eta for site in sites])
+    logk0 = mu.copy() if init_logk is None else np.broadcast_to(
+        np.asarray(init_logk, dtype=float), (s,)).copy()
 
     # Per-site clear-sky POA driver, laid out step-major: poa_flat[step*S + i].
     poa_cols = [
@@ -265,10 +275,10 @@ def build_covariance_config(
     poa_stack = np.column_stack(poa_cols)     # (N, S)
     poa_flat = [float(v) for v in poa_stack.reshape(-1)]
 
-    # Init row: log K at its stationary mean, generation computed there.
-    k0 = np.minimum(np.exp(mu), k_max)
+    # Init row: log K at logk0 (default the stationary mean), generation there.
+    k0 = np.minimum(np.exp(logk0), k_max)
     gen0 = np.clip(kwp * poa_stack[0] / geo.I_STC * k0 * eta, 0.0, None)
-    init_state = [float(v) for v in mu] + [float(v) for v in gen0]
+    init_state = [float(v) for v in logk0] + [float(v) for v in gen0]
 
     # 2S per-field outputs: slice the vectorised log K / generation bindings.
     outputs = [f"slice(logk_next, {i}, 1)" for i in range(s)]
