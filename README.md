@@ -93,7 +93,12 @@ python -m venv --system-site-packages .venv && .venv/bin/pip install -e '.[dev]'
 
 ## Status
 
-Phases 0–2 complete (geometry, both model forms, ingestion). Inference
-(calibration + a Python particle filter with ESS) and the declarative-twin
-verification are in progress; the plan's Phase 5 (extraction into the stochadex Go
-catalogue) is out of scope under the Python-only constraint. See `FINDINGS.md`.
+Complete: geometry, both model forms (factor + full-covariance), ingestion +
+cleaning contract, inference (calibration + a particle filter with ESS), the
+declarative twin verified against an independent numpy reference, and the six
+structural-driver behavioural claims. 53 tests pass.
+
+Deferred / out of scope: the ONNX residual (`solarfleet` optional, needs
+`scikit-learn`/`skl2onnx`/`onnxruntime`); a decision layer (siting/dispatch); and
+the plan's Phase 5 (extraction into the stochadex Go catalogue, which the
+Python-only constraint rules out). See `FINDINGS.md` and `STOCHADEX_GAPS.md`.
