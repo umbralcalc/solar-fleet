@@ -81,6 +81,17 @@ The forcing dataset is Open Climate Fix
 The cleaning contract (`bad_data.csv` + OCF's recommended steps) is implemented as
 an explicit, testable contract returning a drop-count report, not ad-hoc filtering.
 
+With an `HF_TOKEN` set (after accepting the dataset conditions), the whole
+real-data pipeline runs as one command:
+
+```bash
+python -m solarfleet.analysis     # fetch summer 2024 -> select sites -> calibrate
+```
+
+Calibrated against real summer-2024 data, the fitted coupling kernel reproduces a
+textbook cloud-field decorrelation (correlation ~0.76 at 50 km, ~0.20 at 300 km)
+and per-site OU reversion half-lives of 1.5–5.4 hours. See `FINDINGS.md`.
+
 ## Running
 
 Requires the `stochadex` CLI. Build the pure-Go binary (no toolchain needed to
@@ -95,8 +106,9 @@ python -m venv --system-site-packages .venv && .venv/bin/pip install -e '.[dev]'
 
 Complete: geometry, both model forms (factor + full-covariance), ingestion +
 cleaning contract, inference (calibration + a particle filter with ESS), the
-declarative twin verified against an independent numpy reference, and the six
-structural-driver behavioural claims. 53 tests pass.
+declarative twin verified against an independent numpy reference, the six
+structural-driver behavioural claims, and **calibration against real OCF uk_pv
+data**. 55 tests pass.
 
 Deferred / out of scope: the ONNX residual (`solarfleet` optional, needs
 `scikit-learn`/`skl2onnx`/`onnxruntime`); a decision layer (siting/dispatch); and

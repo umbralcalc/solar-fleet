@@ -237,6 +237,40 @@ mirroring the catalogue's claim<->test binding):
   seasonality), so the claim is named `higher_latitude_widens_summer_winter_ratio`
   here to match the statement and the measurement.
 
+## Real data — calibrated against OCF uk_pv (summer 2024)
+
+The model is calibrated against the **real** gated dataset (10 GB-spread sites,
+May–July 2024, `python -m solarfleet.analysis`). This is no longer synthetic-only.
+
+- **The core structure validates against real cross-site correlations.** The
+  fitted coupling kernel gives correlation **0.76 at 50 km, 0.44 at 150 km, 0.20
+  at 300 km** — a textbook cloud-field decorrelation, fit from 22 real site-pairs.
+  This is direct evidence that the distance-dependent coupling of form (b) is the
+  right shape for real GB solar, not just an assumption.
+- **Per-site OU parameters are physical:** reversion half-lives 1.5–5.4 h (cloud
+  persistence), log-K volatility 0.38–0.49, and a mean effective clear-sky index
+  of **0.57** across sites — exactly right for a cloudy GB summer.
+- **The cleaning contract on real data** kept 91.1% of rows; the dominant drop was
+  3,786 rows in whole (site,day) blocks flagged by the night-generation clause —
+  real sensor noise, and the same invariant the forward model asserts.
+- **Plan §4.2 caveat 4 is a real trap, and it was hit.** `generation_Wh` is energy
+  per period, not power; inverting it directly against the `kWp * POA/I_STC` power
+  reference gave a clear-sky index ~500x too large. The ×(60/period)/1000
+  conversion fixes it. θ, σ and the kernel were unaffected (they come from AR(1)
+  slopes/residuals and correlations, invariant to an additive log shift) — only
+  the level μ was corrupted. Pinned by `tests/test_analysis.py` against the
+  fixture (where the true effective index is known = 0.85).
+- **Scale forced two real-data engineering choices:** the 3-month slice is **105.5M
+  rows across 25,550 systems**, so ingestion selects a handful of sites first
+  (ss_id pushdown) rather than cleaning everything, and the night-day clause was
+  vectorised (a per-row Python membership test stalled at that scale).
+- **Honest limitation:** 2 of the 10 selected sites had too little clean daytime
+  data to fit (real-world messiness); they are reported as such, not silently
+  dropped.
+
+The dataset is gated, so none of it is committed (`data/` is gitignored); CI
+still runs entirely on the synthetic `testdata/` fixture.
+
 ## Consequences of the python+configs reframe (flagged, not blockers)
 
 - **The Phase 4 twin inverts.** With no bespoke Go there is no Go oracle for the

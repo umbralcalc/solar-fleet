@@ -69,7 +69,23 @@ def read_uk_pv(root, years=None, months=None) -> pd.DataFrame:
     table = dataset.to_table(filter=_partition_filter(years, months))
     df = table.to_pandas()
     df = df[["ss_id", "datetime_GMT", "generation_Wh"]].copy()
-    df["datetime_GMT"] = pd.to_datetime(df["datetime_GMT"])
+    df["datetime_GMT"] = pd.to_datetime(df["datetime_GMT"], utc=True)
+    return df.sort_values(["ss_id", "datetime_GMT"]).reset_index(drop=True)
+
+
+def read_uk_pv_sites(root, ss_ids, years=None, months=None) -> pd.DataFrame:
+    """Read only the given systems, pushing the ss_id filter into the scan.
+
+    For real data (100M+ rows across 25k systems) reading everything is
+    infeasible; selecting a handful of sites first keeps the working set small.
+    """
+    dataset = _dataset(root)
+    expr = _partition_filter(years, months)
+    id_expr = pads.field("ss_id").isin(list(ss_ids))
+    expr = id_expr if expr is None else (expr & id_expr)
+    df = dataset.to_table(filter=expr).to_pandas()
+    df = df[["ss_id", "datetime_GMT", "generation_Wh"]].copy()
+    df["datetime_GMT"] = pd.to_datetime(df["datetime_GMT"], utc=True)
     return df.sort_values(["ss_id", "datetime_GMT"]).reset_index(drop=True)
 
 
@@ -80,9 +96,9 @@ def load_metadata(path) -> pd.DataFrame:
 
 def load_bad_data(path) -> pd.DataFrame:
     bad = pd.read_csv(path)
-    bad["start_datetime_GMT"] = pd.to_datetime(bad["start_datetime_GMT"])
+    bad["start_datetime_GMT"] = pd.to_datetime(bad["start_datetime_GMT"], utc=True)
     # A blank end means "to the end of the series" -> NaT, handled in clean().
-    bad["end_datetime_GMT"] = pd.to_datetime(bad["end_datetime_GMT"], errors="coerce")
+    bad["end_datetime_GMT"] = pd.to_datetime(bad["end_datetime_GMT"], errors="coerce", utc=True)
     return bad
 
 
@@ -157,21 +173,24 @@ def clean(df: pd.DataFrame, metadata: pd.DataFrame,
     midpoint = period_start + pd.Timedelta(minutes=period_minutes / 2)
     lat = df.ss_id.map(metadata["latitude_rounded"]).to_numpy(float)
     lon = df.ss_id.map(metadata["longitude_rounded"]).to_numpy(float)
-    altitude, _ = geo.solar_position(lat, lon, midpoint.to_numpy())
+    midpoint_naive = midpoint.dt.tz_convert("UTC").dt.tz_localize(None).to_numpy()
+    altitude, _ = geo.solar_position(lat, lon, midpoint_naive)
     is_night = altitude <= 0.0
     night_generating = is_night & (df.generation_Wh.to_numpy() > night_tol_wh)
 
     # Group by the stamp's calendar day (night detection above stays on the
-    # period midpoint); a night spike then drops the whole stamped day.
-    day = df.datetime_GMT.dt.date
-    bad_days = set(zip(df.ss_id[night_generating], day[night_generating]))
+    # period midpoint); a night spike then drops the whole stamped day. Keyed
+    # vectorially via a (site|day) string so this stays fast on real data
+    # (100M+ rows) rather than looping in Python.
+    day = df.datetime_GMT.dt.date.astype(str)
+    key = df.ss_id.astype("int64").astype(str) + "|" + day
+    bad_keys = pd.unique(key[night_generating])
     report.night_day_diagnostics = sorted(
-        (int(s), str(d)) for s, d in bad_days)
-    if bad_days:
-        keys = list(zip(df.ss_id, day))
-        drop = np.array([k in bad_days for k in keys])
+        (int(k.split("|")[0]), k.split("|")[1]) for k in bad_keys)
+    if len(bad_keys):
+        drop = key.isin(set(bad_keys))
         report.dropped_night_days = int(drop.sum())
-        df = df[~drop]
+        df = df[~drop.to_numpy()]
 
     df = df.reset_index(drop=True)
     report.kept = len(df)
