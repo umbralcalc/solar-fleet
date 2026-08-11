@@ -1,0 +1,25 @@
+[project]
+name = "solarfleet"
+version = "0.1.0"
+description = "Aggregate domestic solar PV fleet output as a stochadex forward model, driven entirely from Python + stochadex YAML configs."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "pyyaml>=6.0",
+    "pyarrow>=14.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["solarfleet*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

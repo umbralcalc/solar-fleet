@@ -1,0 +1,23 @@
+# build / cli
+.bin/
+# run outputs at the repo root (the committed testdata/ fixture is kept)
+/*.arrow
+/*.parquet
+runs/
+
+# data (gitignored per plan; testdata/ is committed)
+data/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# generated run configs / outputs
+configs/generated/
+runs/
