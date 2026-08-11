@@ -214,6 +214,29 @@ verified in `tests/test_equivalence.py`:
   *"...which nothing reads — check for a typo, or a key from an older schema."*
   The trap the plan guarded against no longer exists.
 
+## §7.2 — the structural-driver claims (behaviour.py)
+
+All six monotonic claims hold (`tests/test_behaviour.py`, one subtest per claim,
+mirroring the catalogue's claim<->test binding):
+
+- **The flagship dispersion claim is non-vacuous.** `wider_geographic_dispersion
+  _lowers_fleet_variability` bites because coupling derives from geography in form
+  (b): a compact fleet's aggregate clear-sky index is markedly more variable than
+  a dispersed fleet's at fixed capacity. The plan's worry (§7.2) — that the claim
+  passes without meaning under the single-factor form (a) — is avoided by using
+  (b) as the model. Under (a) it would indeed be vacuous, which is the argument
+  for (b).
+- **Cloud volatility ↑ and mean-reversion speed ↑** move aggregate variability up
+  and down respectively; **tilt, orientation, latitude** move winter share,
+  annual output and the summer/winter ratio as expected — the last three are pure
+  geometry, so deterministic.
+- **Plan correction:** the claim table lists ID
+  `higher_latitude_lowers_summer_winter_ratio` against the statement "Higher
+  latitude *widens* the summer/winter output ratio" — the ID and statement
+  disagree. The physics is that higher latitude *widens* the ratio (more extreme
+  seasonality), so the claim is named `higher_latitude_widens_summer_winter_ratio`
+  here to match the statement and the measurement.
+
 ## Consequences of the python+configs reframe (flagged, not blockers)
 
 - **The Phase 4 twin inverts.** With no bespoke Go there is no Go oracle for the
