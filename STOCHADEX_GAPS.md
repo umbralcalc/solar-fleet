@@ -111,9 +111,13 @@ will hit it the moment real data has gaps.
   canonical shape in Python, then read. No negotiation layer to use even if one
   wanted to.
 
-## Open / to-assess as later phases hit them
+## Resolved in Phase 3 — assessed, not a blocker
 
-- **ESS / resampling particle filter (Phase 3).** `posterior_estimation` is a
-  loglike-weighted rolling average with no effective-sample-size or resampling
-  diagnostic; `smc_inference` surfaces none either. Whether this blocks the
-  latent-index filter or is simply done in Python is a Phase 3 question.
+- **ESS / resampling particle filter.** Confirmed: `posterior_estimation` is a
+  loglike-weighted rolling average with no ESS or resampling, and `smc_inference`
+  surfaces none either. It does **not block** — the latent clear-sky-index filter
+  is a bootstrap particle filter in `solarfleet/infer.py` with an explicit
+  `ESS = 1/sum(w^2)` diagnostic and systematic resampling. Per Invariant A,
+  inference belongs in this repo anyway, so filtering in Python is the intended
+  boundary, not a workaround. If the engine ever wants a first-class resampling
+  SMC with ESS, this is the worked reference; but nothing here needed it.

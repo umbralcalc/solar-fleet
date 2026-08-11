@@ -160,6 +160,33 @@ Postgres round-trip (source == sink through the canonical `(partition_name, time
 state[])` table) is not exercised here — it needs a running instance — but the
 shape requirement is the same canonical one.
 
+## Phase 3 — inference (all in Python, Invariant A)
+
+- **eta and the OU mean are not separately identifiable** from generation +
+  clear-sky POA. Generation depends on `eta * exp(log K)`, so only
+  `eta * exp(mu)` is pinned; a brighter panel and a higher clear-sky-index mean
+  are indistinguishable. Calibration therefore recovers an *effective* level
+  `mu_eff = mu + log(eta)`, plus the dynamics (`theta`, `sigma`) which are
+  identified independently. The plan listed `eta` and `mu` as separate fit
+  targets; they are confounded, and `solarfleet/infer.py` says so. (Recovered
+  cleanly in `tests/test_infer.py`.)
+- **OU calibration is closed-form.** The Euler OU step is an AR(1), so OLS of
+  `logk_{t+1}` on `logk_t` recovers `(theta, mu_eff, sigma)` — no optimiser. The
+  coupling kernel decay `c1` is a no-intercept linear fit of `log(rho_ij)` on
+  temporal distance.
+- **The particle filter and ESS live here, and that is the right boundary.** The
+  engine's `posterior_estimation` is a loglike-weighted average with no ESS; the
+  bootstrap PF in `infer.py` tracks the latent log-K field, computes
+  `ESS = 1/sum(w^2)` every step, and resamples systematically when it degrades.
+  Recovery + tracking + ESS behaviour are tested. This is exactly the
+  forget-friendly streaming inference the plan wanted, and keeping it in Python
+  is Invariant A working as intended, not a workaround.
+- **ONNX residual (§5.3) deferred.** Needs `scikit-learn` + `skl2onnx` +
+  `onnxruntime`, not installed here. It is explicitly the last, optional step
+  (only after the physical + OU layers validate without it), so it is left for
+  when those deps are added; the allocation-profile question it raises is noted
+  for then.
+
 ## Consequences of the python+configs reframe (flagged, not blockers)
 
 - **The Phase 4 twin inverts.** With no bespoke Go there is no Go oracle for the
