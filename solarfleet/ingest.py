@@ -3,7 +3,7 @@
 Two things live here:
 
 1. **Partition-pruned Parquet reading.** The engine has no native Parquet source
-   and no Hive-partition awareness (see ``STOCHADEX_GAPS.md``), so reading is done
+   and no Hive-partition awareness, so reading is done
    in pandas/pyarrow — pruning on the Hive ``year=/month=`` partitions *before*
    the datetime range — and the result is handed to the model as a driver or,
    when the engine must see it, written to the canonical CSV shape.
@@ -222,7 +222,7 @@ def to_canonical_csv(df: pd.DataFrame, path, value_col: str = "generation_Wh",
     periods, so the wide pivot is ragged; pass ``dense_fill`` (e.g. 0.0) to fill
     the holes. That is a lossy, explicit choice the caller must make — imputing a
     gap as generation is wrong in general — and it is the practical face of the
-    engine's no-nullability data model (see ``STOCHADEX_GAPS.md``).
+    engine's no-nullability data model.
     """
     wide = df.pivot_table(index="datetime_GMT", columns=partition_col,
                           values=value_col)

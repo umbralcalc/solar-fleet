@@ -11,7 +11,7 @@ The clear-sky backbone is **not** fitted — it is physics. What is fitted:
 And what is estimated online: the latent clear-sky-index field given observed
 generation, by a bootstrap **particle filter** that tracks its own effective
 sample size — the degeneracy diagnostic the engine's ``posterior_estimation``
-does not provide (see ``STOCHADEX_GAPS.md``).
+does not provide.
 
 Identifiability note (recorded in FINDINGS.md): from generation and clear-sky POA
 alone, the system efficiency ``eta`` and the OU mean of ``log K`` are confounded —

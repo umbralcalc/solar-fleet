@@ -42,7 +42,6 @@ solarfleet/
 tests/          # geometry, forward model, covariance, ingestion
 testdata/       # committed synthetic uk_pv fixture (real dataset is gated)
 FINDINGS.md         # design decisions + the headline result
-STOCHADEX_GAPS.md   # engine capability gaps, recorded as hit
 ```
 
 ## The two model forms
@@ -114,5 +113,4 @@ aggregate output variability using the calibrated distance-decay covariance, and
 evaluates inside the stochadex forward loop. 64 tests pass.
 
 Deferred / out of scope: only the plan's Phase 5 (extraction into the stochadex Go
-catalogue, which the Python-only constraint rules out). See `FINDINGS.md` and
-`STOCHADEX_GAPS.md`.
+catalogue, which the Python-only constraint rules out). See `FINDINGS.md`.

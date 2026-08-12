@@ -106,12 +106,13 @@ config-expressible. Worth surfacing upstream as a worked pattern, not a gap.
 
 ## Phase 0 deltas — plan assumptions vs the live engine
 
-**Engine capability gaps live in `STOCHADEX_GAPS.md`** (the running tracker).
+**Engine capability gaps found here were reported upstream into stochadex.**
 In brief: nested non-constant `pow` is present so the "critical" §6.1 gap is not
-one; `atan2`/`asin`/`acos` are absent but moot under the reframe (gap A); no
-config-level exogenous-series replay into a live simulation (gap B); Parquet/Hive
-ingress, Postgres external-schema mapping, and ESS diagnostics are open/to-assess
-in Phases 2-3. The non-gap plan corrections and conventions notes are below.
+one; `atan2`/`asin`/`acos` are absent but moot under the reframe; no
+config-level exogenous-series replay into a live simulation; no native
+Parquet/Hive ingress; no Postgres external-schema mapping; and
+`posterior_estimation` has no ESS diagnostic. The non-gap plan corrections and
+conventions notes are below.
 
 ### Conventions / exemplars (Phase 5 target)
 
@@ -134,7 +135,7 @@ is no negotiation layer; what the engine actually requires, discovered by feedin
 it real cleaned data (`tests/test_ingest.py::test_engine_consumes_cleaned_data_via_csv_source`):
 
 - **Reading Parquet is a Python job, not an engine one.** No native Parquet
-  source, no Hive pruning (`STOCHADEX_GAPS.md`). `solarfleet/ingest.py` reads the
+  source, no Hive pruning. `solarfleet/ingest.py` reads the
   Hive tree with pyarrow.dataset, pruning `year=/month=` before any row is read
   (verified: a `months=[6]` filter touches exactly one fragment), and hands the
   result on. This is clean and fast; it simply lives in pandas.
